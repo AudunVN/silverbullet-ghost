@@ -1,6 +1,7 @@
 import { readSetting } from "$sb/lib/settings_page.ts";
 import { readSecret } from "$sb/lib/secrets_page.ts";
-import { editor, markdown, space } from "$sb/silverbullet-syscall/mod.ts";
+import { editor, markdown, space, system } from "$sb/silverbullet-syscall/mod.ts";
+import { renderToText } from "$sb/lib/tree.ts";
 import { cleanMarkdown } from "$sb-plugs/markdown/util.ts";
 import { GhostAdmin } from "./ghost_api.ts";
 import type { PublishEvent } from "$sb/app_event.ts";
@@ -50,20 +51,30 @@ export type MobileDoc = {
 
 type Card = any[];
 
-function markdownToLexical(text: string): string {
+async function markdownToLexical(text: string): Promise<Partial<string>> {
+  /* https://forum.ghost.org/t/struggling-to-update-post-using-admin-api-lexical/45209/13 */
+  /* https://github.com/silverbulletmd/silverbullet/blob/e280dfee4a2c6fd3611ade2a372a7624abae0c0b/plugs/share/share.ts#L112 */
+  const tree = await markdown.parseMarkdown(text);
+  const pageName = await editor.getCurrentPage();
+
+  let rendered = await system.invokeFunction(
+    "markdown.expandCodeWidgets",
+    tree,
+    pageName
+  );
+  rendered = cleanMarkdown(rendered);
+
+  const html = await system.invokeFunction(
+    "markdown.markdownToHtml",
+    renderToText(rendered),
+  );
+
   return JSON.stringify({
     "root": {
       "children": [{
-        "type": "markdown",
+        "type": "html",
         "version": 1,
-        "markdown": text,
-      }, {
-        "children": [],
-        "direction": null,
-        "format": "",
-        "indent": 0,
-        "type": "paragraph",
-        "version": 1,
+        "html": html,
       }],
       "direction": null,
       "format": "",
@@ -82,7 +93,7 @@ async function markdownToPost(text: string): Promise<Partial<Post>> {
     const [, title, content] = match;
     return {
       title,
-      lexical: markdownToLexical(await cleanMarkdown(content)),
+      lexical: await markdownToLexical(content),
     };
   }
   throw Error("Post should stat with a # header");

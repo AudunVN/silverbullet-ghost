@@ -4,5 +4,7 @@
   "deno.config": "deno.jsonc",
   "[markdown]": {
     "editor.formatOnSave": false
-  }
+  },
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2
 }
