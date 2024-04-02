@@ -7,6 +7,6 @@ functions:
     command:
       name: "Ghost: Publish"
   publish:
-    path: "./ghost.ts:publish"
+    path: ghost.ts:publish
     events:
       - share:ghost

@@ -3,6 +3,6 @@
   "tasks": {
     "build": "silverbullet plug:compile --info --importmap import_map.json ghost.plug.yaml",
     "watch": "silverbullet plug:compile -w --importmap import_map.json ghost.plug.yaml",
-    "test-space": "silverbullet plug:compile --info --importmap import_map.json ghost.plug.yaml && cp ghost.plug.js test-space/_plugs/ghost.plug.js && cp ghost.plug.json test-space/_plugs/ghost.plug.json && silverbullet test-space"
+    "test-space": "silverbullet plug:compile --info --importmap import_map.json ghost.plug.yaml && cp ghost.plug.js test-space/_plug/ghost.plug.js && silverbullet test-space"
   }
 }
