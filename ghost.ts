@@ -1,6 +1,7 @@
 import { readSetting } from "$sb/lib/settings_page.ts";
 import { readSecret } from "$sb/lib/secrets_page.ts";
 import { editor, markdown, space } from "$sb/silverbullet-syscall/mod.ts";
+import { cleanMarkdown } from "$sb-plugs/markdown/util.ts";
 import { GhostAdmin } from "./ghost_api.ts";
 import type { PublishEvent } from "$sb/app_event.ts";
 import { filterBox } from "$sb/silverbullet-syscall/editor.ts";
@@ -72,9 +73,11 @@ async function markdownToPost(text: string): Promise<Partial<Post>> {
     const title = match[1];
     const content = match[2];
 
+    const cleaned = await cleanMarkdown(content);
+
     return {
       title,
-      lexical: JSON.stringify(mdToMdCard(content))
+      lexical: JSON.stringify(mdToMdCard(cleaned))
     };
   }
   throw Error("Post should start with a # header");

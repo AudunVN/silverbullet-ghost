@@ -119,7 +119,7 @@ export class GhostAdmin {
       });
 
       const jsonResponse = await result.json();
-      console.log(jsonResponse);
+      // console.log(jsonResponse);
       return jsonResponse[publishType][0];
     } else {
       const oldPost: Post = oldPostQuery[publishType][0];
