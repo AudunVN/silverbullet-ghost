@@ -1,6 +1,6 @@
 import "$sb/lib/fetch.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
-import type { HtmlPost, Post } from "./ghost.ts";
+import type { Post } from "./ghost.ts";
 
 import { create, getNumericDate } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
@@ -79,11 +79,11 @@ export class GhostAdmin {
     return result.json();
   }
 
-  publishPost(post: Partial<HtmlPost>): Promise<any> {
+  publishPost(post: Partial<Post>): Promise<any> {
     return this.publish("posts", post);
   }
 
-  publishPage(post: Partial<HtmlPost>): Promise<any> {
+  publishPage(post: Partial<Post>): Promise<any> {
     return this.publish("pages", post);
   }
 

@@ -17,23 +17,6 @@ type GhostInstanceConfig = {
 
 type GhostConfig = Record<string, GhostInstanceConfig>;
 
-export type HtmlPost = {
-  id: string;
-  uuid: string;
-  title: string;
-  slug: string;
-  html: string;
-  status: "draft" | "published";
-  visibility: string;
-  created_at: string;
-  published_at: string;
-  updated_at: string;
-  tags: Tag[];
-  primary_tag: Tag;
-  url: string;
-  excerpt: string;
-};
-
 export type Post = {
   id: string;
   uuid: string;
