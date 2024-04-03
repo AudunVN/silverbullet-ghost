@@ -1,9 +1,6 @@
 import { readSetting } from "$sb/lib/settings_page.ts";
 import { readSecret } from "$sb/lib/secrets_page.ts";
-import { editor, markdown, space, system } from "$sb/silverbullet-syscall/mod.ts";
-import { renderToText } from "$sb/lib/tree.ts";
-import { cleanMarkdown } from "$sb-plugs/markdown/util.ts";
-import { MarkdownRenderOptions } from "$sb-plugs/markdown/markdown_render.ts";
+import { editor, markdown, space } from "$sb/silverbullet-syscall/mod.ts";
 import { GhostAdmin } from "./ghost_api.ts";
 import type { PublishEvent } from "$sb/app_event.ts";
 import { filterBox } from "$sb/silverbullet-syscall/editor.ts";
@@ -63,55 +60,7 @@ type Tag = {
 
 type Card = any[];
 
-async function markdownToHtml(text: string): Promise<Partial<string>> {
-  /* https://forum.ghost.org/t/struggling-to-update-post-using-admin-api-lexical/45209/13 */
-  /* https://github.com/silverbulletmd/silverbullet/blob/e280dfee4a2c6fd3611ade2a372a7624abae0c0b/plugs/share/share.ts#L112 */
-
-  const mdTree = await markdown.parseMarkdown(text);
-  const options:MarkdownRenderOptions = {};
-
-  const pageName = await editor.getCurrentPage();
-
-  const expanded = await system.invokeFunction(
-    "markdown.expandCodeWidgets",
-    mdTree,
-    pageName
-  );
-
-  const html = await system.invokeFunction(
-    "markdown.markdownToHtml",
-    renderToText(expanded),
-    options
-  );
-
-  // html = "<p>this is just a plain old paragraph to test things.</p>";
-  // html = "<!--kg-card-begin: html-->" + html + "<!--kg-card-end: html-->";
-
-  return html;
-}
-
 const postRegex = /#\s*([^\n]+)\n(([^\n]|\n)+)$/;
-
-function htmlToHtmlCard(htmlString: string): object {
-  const lexical = {
-      root: {
-          children: [
-              {
-                  type: 'html',
-                  version: 1,
-                  html: htmlString
-              }
-          ],
-          direction: null,
-          format: '',
-          indent: 0,
-          type: 'root',
-          version: 1
-      }
-  };
-
-  return lexical;
-};
 
 function mdToMdCard(mdString: string): object {
   const lexical = {
@@ -137,11 +86,11 @@ function mdToMdCard(mdString: string): object {
 async function markdownToPost(text: string): Promise<Partial<Post>> {
   const match = postRegex.exec(text);
   if (match) {
-    const [, title, content] = match;
-    // const htmlString = await markdownToHtml(content);
+    const title = match[1];
+    const content = match[2];
+
     return {
       title,
-      // lexical: JSON.stringify(htmlToHtmlCard(htmlString)),
       lexical: JSON.stringify(mdToMdCard(content))
     };
   }
@@ -160,25 +109,31 @@ async function getConfig(): Promise<GhostConfig> {
 
 export async function publish(event: PublishEvent): Promise<boolean> {
   const config = await getConfig();
-  console.log(event);
-  const [, name, type, slug] = event.uri!.split(":");
-  console.log(`name: ${name}`);
-  console.log(`type: ${type}`);
-  console.log(`type: ${slug}`);
+
+  const uriParts = event.uri!.split(":");
+  // share URI format is ghost:name:type:slug
+  const name = uriParts[1];
+  const type = uriParts[2];
+  const slug = uriParts[3];
+
   const instanceConfig = config[name];
   if (!instanceConfig) {
     throw new Error("No config for instance " + name);
   }
+
   const admin = new GhostAdmin(instanceConfig.url, instanceConfig.adminKey);
   await admin.init();
+
   const text = await space.readPage(event.name);
   const post = await markdownToPost(text);
   post.slug = slug;
+
   if (type === "post") {
     await admin.publishPost(post);
   } else if (type === "page") {
     await admin.publishPage(post);
   }
+
   return true;
 }
 
@@ -239,6 +194,7 @@ export async function publishPage() {
   if (!type) {
     return;
   }
+
   const config = await getConfig();
   const instanceConfig = config[instanceName];
   if (!instanceConfig) {

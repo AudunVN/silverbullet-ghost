@@ -88,15 +88,10 @@ export class GhostAdmin {
   }
 
   async publish(publishType: "pages" | "posts", post: Partial<Post>): Promise<any> {
-    console.log(post);
-
     const requestBody = {
       [publishType]: [post],
     };
-    console.log(requestBody);
-
-    const requestBodyString = JSON.stringify(requestBody);
-    console.log(requestBodyString);
+    // console.log(requestBody);
 
     const oldPostQueryR = await fetch(
       `${this.url}/ghost/api/v3/admin/${publishType}/slug/${post.slug}`,
@@ -107,13 +102,14 @@ export class GhostAdmin {
         },
       },
     );
-    let oldPostQuery = await oldPostQueryR.json();
+    const oldPostQuery = await oldPostQueryR.json();
     if (!oldPostQuery[publishType]) {
       // New!
       if (!post.status) {
         post.status = "draft";
       }
-      let result = await fetch(`${this.url}/ghost/api/v3/admin/${publishType}/`, {
+
+      const result = await fetch(`${this.url}/ghost/api/v3/admin/${publishType}/`, {
         method: "POST",
         headers: {
           Authorization: `Ghost ${this.token}`,
@@ -121,13 +117,15 @@ export class GhostAdmin {
         },
         body: JSON.stringify(requestBody)
       });
+
       const jsonResponse = await result.json();
       console.log(jsonResponse);
       return jsonResponse[publishType][0];
     } else {
-      let oldPost: Post = oldPostQuery[publishType][0];
+      const oldPost: Post = oldPostQuery[publishType][0];
       post.updated_at = oldPost.updated_at;
-      let result = await fetch(
+
+      const result = await fetch(
         `${this.url}/ghost/api/v3/admin/${publishType}/${oldPost.id}/`,
         {
           method: "PUT",
@@ -138,8 +136,9 @@ export class GhostAdmin {
           body: JSON.stringify(requestBody)
         },
       );
+
       const jsonResponse = await result.json();
-      console.log(jsonResponse);
+      // console.log(jsonResponse);
       return jsonResponse[publishType][0];
     }
   }

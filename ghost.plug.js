@@ -919,13 +919,9 @@ var GhostAdmin = class {
     return this.publish("pages", post);
   }
   async publish(publishType, post) {
-    console.log(post);
     const requestBody = {
       [publishType]: [post]
     };
-    console.log(requestBody);
-    const requestBodyString = JSON.stringify(requestBody);
-    console.log(requestBodyString);
     const oldPostQueryR = await fetch(
       `${this.url}/ghost/api/v3/admin/${publishType}/slug/${post.slug}`,
       {
@@ -935,12 +931,12 @@ var GhostAdmin = class {
         }
       }
     );
-    let oldPostQuery = await oldPostQueryR.json();
+    const oldPostQuery = await oldPostQueryR.json();
     if (!oldPostQuery[publishType]) {
       if (!post.status) {
         post.status = "draft";
       }
-      let result = await fetch(`${this.url}/ghost/api/v3/admin/${publishType}/`, {
+      const result = await fetch(`${this.url}/ghost/api/v3/admin/${publishType}/`, {
         method: "POST",
         headers: {
           Authorization: `Ghost ${this.token}`,
@@ -952,9 +948,9 @@ var GhostAdmin = class {
       console.log(jsonResponse);
       return jsonResponse[publishType][0];
     } else {
-      let oldPost = oldPostQuery[publishType][0];
+      const oldPost = oldPostQuery[publishType][0];
       post.updated_at = oldPost.updated_at;
-      let result = await fetch(
+      const result = await fetch(
         `${this.url}/ghost/api/v3/admin/${publishType}/${oldPost.id}/`,
         {
           method: "PUT",
@@ -966,7 +962,6 @@ var GhostAdmin = class {
         }
       );
       const jsonResponse = await result.json();
-      console.log(jsonResponse);
       return jsonResponse[publishType][0];
     }
   }
@@ -1107,10 +1102,10 @@ function mdToMdCard(mdString) {
 async function markdownToPost(text) {
   const match = postRegex.exec(text);
   if (match) {
-    const [, title, content] = match;
+    const title = match[1];
+    const content = match[2];
     return {
       title,
-      // lexical: JSON.stringify(htmlToHtmlCard(htmlString)),
       lexical: JSON.stringify(mdToMdCard(content))
     };
   }
@@ -1126,11 +1121,10 @@ async function getConfig() {
 }
 async function publish(event) {
   const config = await getConfig();
-  console.log(event);
-  const [, name, type, slug] = event.uri.split(":");
-  console.log(`name: ${name}`);
-  console.log(`type: ${type}`);
-  console.log(`type: ${slug}`);
+  const uriParts = event.uri.split(":");
+  const name = uriParts[1];
+  const type = uriParts[2];
+  const slug = uriParts[3];
   const instanceConfig = config[name];
   if (!instanceConfig) {
     throw new Error("No config for instance " + name);
@@ -1215,7 +1209,7 @@ async function publishPage() {
   await editor_exports.flashNotification("Published to Ghost!");
 }
 
-// efe44d35b4bbeeb7.js
+// 2092f8fc0ba6297d.js
 var functionMapping = {
   publishPage,
   publish
