@@ -19,6 +19,23 @@ type GhostInstanceConfig = {
 
 type GhostConfig = Record<string, GhostInstanceConfig>;
 
+export type HtmlPost = {
+  id: string;
+  uuid: string;
+  title: string;
+  slug: string;
+  html: string;
+  status: "draft" | "published";
+  visibility: string;
+  created_at: string;
+  published_at: string;
+  updated_at: string;
+  tags: Tag[];
+  primary_tag: Tag;
+  url: string;
+  excerpt: string;
+};
+
 export type Post = {
   id: string;
   uuid: string;
@@ -28,7 +45,7 @@ export type Post = {
   status: "draft" | "published";
   visibility: string;
   created_at: string;
-  upblished_at: string;
+  published_at: string;
   updated_at: string;
   tags: Tag[];
   primary_tag: Tag;
@@ -51,52 +68,55 @@ export type MobileDoc = {
 
 type Card = any[];
 
-async function markdownToLexical(text: string): Promise<Partial<string>> {
+async function markdownToHtml(text: string): Promise<Partial<string>> {
   /* https://forum.ghost.org/t/struggling-to-update-post-using-admin-api-lexical/45209/13 */
   /* https://github.com/silverbulletmd/silverbullet/blob/e280dfee4a2c6fd3611ade2a372a7624abae0c0b/plugs/share/share.ts#L112 */
-  const tree = await markdown.parseMarkdown(text);
-  const pageName = await editor.getCurrentPage();
-
-  let rendered = await system.invokeFunction(
-    "markdown.expandCodeWidgets",
-    tree,
-    pageName
-  );
-  rendered = cleanMarkdown(rendered);
-
-  const html = await system.invokeFunction(
+  let html = await system.invokeFunction(
     "markdown.markdownToHtml",
-    renderToText(rendered),
+    text
   );
 
-  return JSON.stringify({
-    "root": {
-      "children": [{
-        "type": "html",
-        "version": 1,
-        "html": html,
-      }],
-      "direction": null,
-      "format": "",
-      "indent": 0,
-      "type": "root",
-      "version": 1,
-    },
-  });
+  // html = "<p>this is just a plain old paragraph to test things.</p>";
+
+  // html = "<!--kg-card-begin: html-->" + html + "<!--kg-card-end: html-->";
+
+  return html;
 }
 
 const postRegex = /#\s*([^\n]+)\n(([^\n]|\n)+)$/;
+
+function htmlToHtmlCard(htmlString: string): object {
+  const lexical = {
+      root: {
+          children: [
+              {
+                  type: 'html',
+                  version: 1,
+                  html: htmlString
+              }
+          ],
+          direction: null,
+          format: '',
+          indent: 0,
+          type: 'root',
+          version: 1
+      }
+  };
+
+  return lexical;
+};
 
 async function markdownToPost(text: string): Promise<Partial<Post>> {
   const match = postRegex.exec(text);
   if (match) {
     const [, title, content] = match;
+    const htmlString = await markdownToHtml(content);
     return {
       title,
-      lexical: await markdownToLexical(content),
+      lexical: JSON.stringify(htmlToHtmlCard(htmlString)),
     };
   }
-  throw Error("Post should stat with a # header");
+  throw Error("Post should start with a # header");
 }
 
 async function getConfig(): Promise<GhostConfig> {
@@ -111,7 +131,11 @@ async function getConfig(): Promise<GhostConfig> {
 
 export async function publish(event: PublishEvent): Promise<boolean> {
   const config = await getConfig();
+  console.log(event);
   const [, name, type, slug] = event.uri!.split(":");
+  console.log(`name: ${name}`);
+  console.log(`type: ${type}`);
+  console.log(`type: ${slug}`);
   const instanceConfig = config[name];
   if (!instanceConfig) {
     throw new Error("No config for instance " + name);

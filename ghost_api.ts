@@ -1,6 +1,6 @@
 import "$sb/lib/fetch.ts";
 import { mime } from "https://deno.land/x/mimetypes@v1.0.0/mod.ts";
-import type { Post } from "./ghost.ts";
+import type { HtmlPost, Post } from "./ghost.ts";
 
 import { create, getNumericDate } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
@@ -79,17 +79,27 @@ export class GhostAdmin {
     return result.json();
   }
 
-  publishPost(post: Partial<Post>): Promise<any> {
+  publishPost(post: Partial<HtmlPost>): Promise<any> {
     return this.publish("posts", post);
   }
 
-  publishPage(post: Partial<Post>): Promise<any> {
+  publishPage(post: Partial<HtmlPost>): Promise<any> {
     return this.publish("pages", post);
   }
 
-  async publish(what: "pages" | "posts", post: Partial<Post>): Promise<any> {
+  async publish(publishType: "pages" | "posts", post: Partial<Post>): Promise<any> {
+    console.log(post);
+
+    const requestBody = {
+      [publishType]: [post],
+    };
+    console.log(requestBody);
+
+    const requestBodyString = JSON.stringify(requestBody);
+    console.log(requestBodyString);
+
     const oldPostQueryR = await fetch(
-      `${this.url}/ghost/api/v3/admin/${what}/slug/${post.slug}`,
+      `${this.url}/ghost/api/v3/admin/${publishType}/slug/${post.slug}`,
       {
         headers: {
           Authorization: `Ghost ${this.token}`,
@@ -98,39 +108,39 @@ export class GhostAdmin {
       },
     );
     let oldPostQuery = await oldPostQueryR.json();
-    if (!oldPostQuery[what]) {
+    if (!oldPostQuery[publishType]) {
       // New!
       if (!post.status) {
         post.status = "draft";
       }
-      let result = await fetch(`${this.url}/ghost/api/v3/admin/${what}`, {
+      let result = await fetch(`${this.url}/ghost/api/v3/admin/${publishType}/`, {
         method: "POST",
         headers: {
           Authorization: `Ghost ${this.token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          [what]: [post],
-        }),
+        body: JSON.stringify(requestBody)
       });
-      return (await result.json())[what][0];
+      const jsonResponse = await result.json();
+      console.log(jsonResponse);
+      return jsonResponse[publishType][0];
     } else {
-      let oldPost: Post = oldPostQuery[what][0];
+      let oldPost: Post = oldPostQuery[publishType][0];
       post.updated_at = oldPost.updated_at;
       let result = await fetch(
-        `${this.url}/ghost/api/v3/admin/${what}/${oldPost.id}`,
+        `${this.url}/ghost/api/v3/admin/${publishType}/${oldPost.id}/`,
         {
           method: "PUT",
           headers: {
             Authorization: `Ghost ${this.token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            [what]: [post],
-          }),
+          body: JSON.stringify(requestBody)
         },
       );
-      return (await result.json())[what][0];
+      const jsonResponse = await result.json();
+      console.log(jsonResponse);
+      return jsonResponse[publishType][0];
     }
   }
 }
